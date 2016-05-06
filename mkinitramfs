@@ -48,11 +48,9 @@ copy /lib/firmware
 
 # pciutils
 copy /usr/sbin/lspci
-copy /usr/share/pci.ids
 
 # usbutils
 copy /usr/bin/lsusb
-copy /usr/share/usb.ids
 
 # udev
 copy /etc/udev
@@ -127,6 +125,7 @@ copypkg btrfs-progs
 copypkg coreutils
 copypkg cryptsetup
 copypkg e2fsprogs
+copypkg hwdata
 copypkg kmod
 copypkg libatasmart
 copypkg lvm
