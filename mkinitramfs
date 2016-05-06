@@ -1,0 +1,423 @@
+#!/bin/bash -e
+
+if [ $# = 0 ]; then
+	kr="$(uname -r)"
+else
+	kr="$1"
+fi
+
+dir="$(mktemp -d /tmp/mkinitramfs.XXXXXX)"
+trap 'rm -rf "$dir"' EXIT
+
+function copy() {
+	if [ -L "$1" ]; then
+		if ! readlink /"$1" >/dev/null; then
+			"echo broken symlink: $1" >&2
+		fi
+		dst="$(readlink "$1")"
+		case "$dst" in
+			/*)
+				copy "$dst"
+				;;
+			*)
+				copy "$(dirname "$1")/$dst"
+				;;
+		esac
+	fi
+	cp -ar --parents --remove-destination "$1" "$dir"/
+}
+
+function copypkg () {
+	dpkg -L $1 | grep -v '^/\.$' | while read n; do
+		if [ -f "$n" -o -L "$n" ]; then
+			copy "${n##*: }"
+		fi
+	done
+}
+
+# shell
+copy /bin/bash
+copy /bin/sh
+copy /etc/inputrc
+
+# coreutils
+copy /bin/[
+copy /bin/basename
+copy /bin/cat
+copy /bin/chmod
+copy /bin/chown
+copy /bin/cp
+copy /bin/cut
+copy /bin/date
+copy /bin/dd
+copy /bin/df
+copy /bin/du
+copy /bin/echo
+copy /bin/env
+copy /bin/false
+copy /bin/link
+copy /bin/ln
+copy /bin/ls
+copy /bin/mkdir
+copy /bin/mkfifo
+copy /bin/mknod
+copy /bin/mv
+copy /bin/nice
+copy /bin/pwd
+copy /bin/rm
+copy /bin/rmdir
+copy /bin/sleep
+copy /bin/sort
+copy /bin/stat
+copy /bin/stty
+copy /bin/sync
+copy /bin/test
+copy /bin/touch
+copy /bin/true
+copy /bin/uname
+copy /bin/unlink
+copy /bin/usleep
+copy /sbin/chroot
+copy /usr/bin/head
+copy /usr/bin/md5sum
+copy /usr/bin/mktemp
+copy /usr/bin/printf
+copy /usr/bin/readlink
+copy /usr/bin/seq
+copy /usr/bin/sha1sum
+copy /usr/bin/sha224sum
+copy /usr/bin/sha256sum
+copy /usr/bin/sha384sum
+copy /usr/bin/sha512sum
+copy /usr/bin/sum
+copy /usr/bin/tac
+copy /usr/bin/tail
+copy /usr/bin/tee
+copy /usr/bin/timeout
+copy /usr/bin/tr
+copy /usr/bin/truncate
+copy /usr/bin/uniq
+copy /usr/bin/wc
+copy /usr/bin/yes
+copy /usr/bin/[
+copy /usr/bin/cut
+copy /usr/bin/du
+copy /usr/bin/env
+copy /usr/bin/nice
+copy /usr/bin/sort
+
+# util-linux
+copy /bin/dmesg
+copy /bin/more
+copy /bin/mount
+copy /bin/umount
+copy /sbin/blkid
+copy /sbin/blockdev
+copy /sbin/cfdisk
+copy /sbin/ctrlaltdel
+copy /sbin/fdisk
+copy /sbin/findfs
+copy /sbin/hwclock
+copy /sbin/losetup
+copy /sbin/mkfs
+copy /sbin/mkswap
+copy /sbin/pivot_root
+copy /sbin/raw
+copy /sbin/sfdisk
+copy /sbin/swapon
+copy /sbin/switch_root
+copy /usr/bin/lscpu
+copy /usr/bin/renice
+copy /usr/bin/setsid
+copy /sbin/swapoff
+
+# module-init-tools
+copy /sbin/insmod
+copy /sbin/modprobe
+copy /sbin/rmmod
+copy /sbin/lsmod
+copy /bin/kmod
+copy /etc/modprobe.conf
+copy /etc/modprobe.d
+
+# kernel modules
+copy /lib/modules/"$kr"/kernel
+copy /lib/modules/"$kr"/modules.order
+copy /lib/modules/"$kr"/modules.builtin
+copy /lib/firmware
+
+# pciutils
+copy /usr/sbin/lspci
+copy /usr/share/pci.ids
+
+# usbutils
+copy /usr/bin/lsusb
+copy /usr/share/usb.ids
+
+# udev
+copy /etc/udev
+copy /usr/lib/udev
+copy /usr/bin/udevadm
+copy /sbin/udevd
+copy /usr/lib/systemd/systemd-udevd
+rm -f "$dir"/{etc,lib}/udev/rules.d/60-floppy.rules
+rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-net.rules
+rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-cd.rules
+
+# mdadm
+copy /sbin/mdadm
+copy /sbin/mdmon
+
+# lvm
+copy /etc/lvm
+copy /sbin/dmeventd
+copy /sbin/dmsetup
+copy /sbin/fsadm
+copy /sbin/lvm
+copy /sbin/lvmdump
+copy /var/lock/lvm
+copy /sbin/lvchange
+copy /sbin/lvconvert
+copy /sbin/lvcreate
+copy /sbin/lvdisplay
+copy /sbin/lvextend
+copy /sbin/lvmchange
+copy /sbin/lvmdiskscan
+copy /sbin/lvmsadc
+copy /sbin/lvmsar
+copy /sbin/lvreduce
+copy /sbin/lvremove
+copy /sbin/lvrename
+copy /sbin/lvresize
+copy /sbin/lvs
+copy /sbin/lvscan
+copy /sbin/pvchange
+copy /sbin/pvck
+copy /sbin/pvcreate
+copy /sbin/pvdisplay
+copy /sbin/pvmove
+copy /sbin/pvremove
+copy /sbin/pvresize
+copy /sbin/pvs
+copy /sbin/pvscan
+copy /sbin/vgcfgbackup
+copy /sbin/vgcfgrestore
+copy /sbin/vgchange
+copy /sbin/vgck
+copy /sbin/vgconvert
+copy /sbin/vgcreate
+copy /sbin/vgdisplay
+copy /sbin/vgexport
+copy /sbin/vgextend
+copy /sbin/vgimport
+copy /sbin/vgmerge
+copy /sbin/vgmknodes
+copy /sbin/vgreduce
+copy /sbin/vgremove
+copy /sbin/vgrename
+copy /sbin/vgs
+copy /sbin/vgscan
+copy /sbin/vgsplit
+
+# grep
+copy /bin/grep
+copy /usr/bin/grep
+
+# less
+copy /bin/less
+copy /etc/sysless
+
+# net-tools
+copy /bin/hostname
+copy /sbin/ifconfig
+copy /sbin/nameif
+copy /sbin/route
+
+# iproute2
+copy /etc/iproute2
+copy /usr/sbin/ip
+copy /usr/sbin/ss
+copy /usr/sbin/tc
+copy /usr/lib/tc
+
+# iputils
+copy /bin/ping
+copy /bin/ping6
+copy /sbin/arping
+copy /usr/bin/tracepath
+copy /usr/bin/tracepath6
+copy /usr/bin/traceroute6
+
+# procps
+copy /bin/kill
+copy /bin/ps
+copy /sbin/sysctl
+copy /usr/bin/top
+copy /usr/bin/uptime
+copy /usr/bin/vmstat
+copy /usr/bin/w
+copy /usr/bin/watch
+
+copy /usr/bin/pidof
+
+# psmisc
+copy /bin/fuser
+copy /bin/killall
+copy /usr/bin/pstree
+
+# openvt
+copy /usr/bin/openvt
+
+# dhcpcd
+copy /usr/sbin/dhcpcd
+copy /var/lib/dhcpc
+
+# aoetools
+copy /usr/sbin/aoe-discover
+copy /usr/sbin/aoe-flush
+copy /usr/sbin/aoe-interfaces
+copy /usr/sbin/aoe-mkdevs
+copy /usr/sbin/aoe-mkshelf
+copy /usr/sbin/aoe-revalidate
+copy /usr/sbin/aoe-stat
+copy /usr/sbin/aoe-version
+copy /usr/sbin/aoecfg
+copy /usr/sbin/aoeping
+
+# sed
+copy /bin/sed
+
+# awk
+copy /bin/gawk
+copy /usr/bin/igawk
+copy /usr/bin/pgawk
+copy /usr/lib/awk
+copy /bin/awk
+copy /usr/bin/awk
+copy /usr/bin/gawk
+
+#
+copy /sbin/hdparm
+
+# e2fsprogs
+copy /bin/chattr
+copy /bin/lsattr
+copy /sbin/badblocks
+copy /sbin/debugfs
+copy /sbin/dumpe2fs
+copy /sbin/e2freefrag
+copy /sbin/e2fsck
+copy /sbin/e2image
+copy /sbin/e2label
+copy /sbin/e2undo
+copy /sbin/filefrag
+copy /sbin/fsck.ext2
+copy /sbin/fsck.ext3
+copy /sbin/fsck.ext4
+copy /sbin/fsck.ext4dev
+copy /sbin/logsave
+copy /sbin/mke2fs
+copy /sbin/mkfs.ext2
+copy /sbin/mkfs.ext3
+copy /sbin/mkfs.ext4
+copy /sbin/mkfs.ext4dev
+copy /sbin/mklost+found
+copy /sbin/resize2fs
+copy /sbin/tune2fs
+
+# xfs
+copy /sbin/fsck.xfs
+copy /sbin/mkfs.xfs
+copy /sbin/xfs_admin
+copy /sbin/xfs_bmap
+copy /sbin/xfs_check
+copy /sbin/xfs_copy
+copy /sbin/xfs_db
+copy /sbin/xfs_estimate
+copy /sbin/xfs_freeze
+copy /sbin/xfs_fsr
+copy /sbin/xfs_growfs
+copy /sbin/xfs_info
+copy /sbin/xfs_io
+copy /sbin/xfs_logprint
+copy /sbin/xfs_mdrestore
+copy /sbin/xfs_metadump
+copy /sbin/xfs_mkfile
+copy /sbin/xfs_ncheck
+copy /sbin/xfs_quota
+copy /sbin/xfs_repair
+copy /sbin/xfs_rtcp
+
+# joe
+copy /usr/bin/joe
+
+copypkg module-init-tools
+copypkg systemd
+copypkg libatasmart
+copypkg lvm
+copypkg udisks2
+copypkg upower
+copypkg util-linux
+copypkg acl
+copypkg attr
+copypkg polkit
+copypkg cryptsetup
+
+# cleanup
+rm -rf "$dir"/usr/share/doc
+rm -rf "$dir"/usr/share/locale
+rm -rf "$dir"/usr/share/man
+rm -rf "$dir"/usr/share/gtk-doc
+
+# copy needed libraries (beware: this is not a proper solution, it is just good enough for our purposes)
+for i in "$dir"/{usr,}/{s,}bin/*; do
+	objdump -p "$i" 2>/dev/null | grep '^[ \t]*NEEDED[ \t]' | tr -s ' ' | cut -d" " -f3
+done | sort -u | while read lib; do
+	if [ -f /usr/lib/"$lib" ]; then
+		copy /usr/lib/"$lib"
+	elif [ -f /lib/"$lib" ]; then
+		copy /lib/"$lib"
+	else
+		echo "missing lib: $lib" >&2
+		exit 1
+	fi
+done
+
+for i in "$dir"/{usr,}/lib/*; do
+	objdump -p "$i" 2>/dev/null | grep '^[ \t]*NEEDED[ \t]' | tr -s ' ' | cut -d" " -f3
+done | sort -u | while read lib; do
+	if [ -f /usr/lib/"$lib" ]; then
+		copy /usr/lib/"$lib"
+	elif [ -f /lib/"$lib" ]; then
+		copy /lib/"$lib"
+	else
+		echo "missing lib: $lib" >&2
+		exit 1
+	fi
+done
+
+# copy symlinks (beware: this is not a proper solution, it is just good enough for our purposes)
+#find "$dir" -type l | while read link; do
+#	echo readlink -f "/${link#$dir}"
+#	copy "$(readlink -f "/${link#$dir}")"
+#done
+
+depmod -b "$dir" -a -e "$kr" -F "/lib/modules/$kr/System.map"
+
+mkdir -p "$dir"/{dev,proc,sys,tmp,run}
+mkdir -p "$dir"/var/run/mdadm
+
+ln -s /proc/mounts "$dir"/etc/mtab
+
+cp -ar /usr/lib/mkinitramfs/. "$dir"/.
+
+mkdir -p "$dir"/mnt
+
+cd "$dir"
+find . | cpio -R 0:0 -H newc -o --quiet | nice pigz  -9 >/boot/initramfs-"$kr".cpio.gz.new
+
+mv /boot/initramfs-"$kr".cpio.gz{.new,}
+
+rm -rf "$dir"
+
+echo "/boot/initramfs-$kr.cpio.gz successfully created"

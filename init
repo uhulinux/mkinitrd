@@ -1,0 +1,323 @@
+#!/bin/bash
+
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+function rootmount() {
+	i=0
+	while [ ! -b "$1" ]; do
+		sleep 0.1
+		if [ $i -ge 300 ]; then
+			echo
+			echo "$1 does not exist" >&2
+			return
+		fi
+		echo -n .
+		let i++
+	done
+	echo
+	o="noatime,nodiratime,$o"
+	if [ -z "$nofsck" ]; then
+		case "$(blkid -o udev "$1"|grep ^ID_FS_TYPE|cut -d= -f2)" in
+			ext4)
+				FSCK_QUIET_IF_CLEAN=1 fsck.ext4 -p "$1"
+				;;
+		esac
+	fi
+	mount -o "$o" "$1" /mnt
+}
+
+function snapshot() {
+	if [ ! -b "$1" ]; then
+		echo "$1 does not exist" >&2
+		return
+	fi
+	blockdev --setro "$1"
+	if [ -n "$snapsize" ]; then
+		if [ "$snapsize" -lt 32 ]; then
+			echo "snapsize too small (should be at least 32M)" >&2
+			snapsize=32
+		fi
+		if [ "$snapsize" -gt 32768 ]; then
+			echo "snapsize too big (should be at most 32768M)" >&2
+			snapsize=32768
+		fi
+	else
+		freemem=$(cat /proc/meminfo | grep MemFree| sed 's/[^0-9]*//g')
+		snapsize=$(($freemem/4/1024))
+	fi
+	dd status=none if=/dev/zero of=/tmp/snapshot.img bs=1M count="$snapsize"
+	modprobe loop
+	udevadm settle
+	snapshot_loop=$(losetup -f --show /tmp/snapshot.img)
+	rm /tmp/snapshot.img
+	modprobe dm-snapshot
+	echo "0 $(blockdev --getsz "$1") snapshot $1 $snapshot_loop n 8" | dmsetup create snapshot
+}
+
+function net_start() {
+	for i in /sys/class/net/*; do
+		ifconfig "$(basename $i)" up
+	done
+	ifconfig lo 127.0.0.1 up
+}
+
+function aoe_start() {
+	net_start
+	modprobe aoe
+	udevadm settle
+	i=0
+	while [ ! -e /dev/etherd/"$1" ]; do
+		aoe-discover
+		sleep 0.1
+		if [ $i -ge 300 ]; then
+			echo
+			echo "aoe timeout" >&2
+			bash
+			return
+		fi
+		echo -n .
+		let i++
+	done
+	echo
+}
+
+function raid_start() {
+	if [ -z "$noinitraid" ]; then
+		udevadm settle
+		mdadm -A -s -c partitions --auto=yes --quiet --homehost=localhost
+		udevadm settle
+	fi
+}
+
+function lvm_start() {
+	if [ -z "$noinitlvm" ]; then
+		udevadm settle
+		raid_start
+		vgchange --quiet -a y
+		udevadm settle
+	fi
+}
+
+function live_start() {
+	if [ ! -b "$1" ]; then
+		echo "$1 does not exist" >&2
+		return
+	fi
+	snapshot "$1"
+	echo "0 $(blockdev --getsz /dev/mapper/snapshot) linear /dev/mapper/snapshot 0" | dmsetup create live
+	rootmount /dev/mapper/live
+}
+
+function start_udev() {
+	udevadm hwdb --update
+	udevd --daemon --resolve-names=never
+	udevadm trigger
+	udevadm settle
+	if [ ! -e /dev/fd ]; then
+		ln -s /proc/self/fd /dev/fd
+	fi
+	udevadm settle
+}
+
+function stop_udev() {
+	i=0
+	while true; do
+		killall -q udevd
+		sleep 0.1
+		if ! pidof udevd >/dev/null; then
+			echo
+			break;
+		fi
+		if [ $i -gt 100 ]; then
+			echo
+			break
+		fi
+		echo -n .
+		let i++
+	done
+}
+
+function scrollout() {
+	i="$LINES"
+	while [ "$i" -ge 1 ]; do
+		echo
+		i="$((i-1))"
+	done
+	echo -en '\e[H\e[J'
+}
+
+builtin echo -e $'\e[?1c'
+
+export PS1=$'\\[\e[?0c\\]# '
+
+mount -t proc none /proc
+
+# ugly hack for kernel 3.4.0-rc3
+eval "$(tr ' ' '\n' </proc/cmdline |grep =|while read x; do echo export $x; done)"
+
+if [ -n "$dbg" ]; then
+	set -x
+else
+	scrollout
+fi
+
+shopt -s nullglob
+
+if [ -z "$LANG" ]; then
+	case "$lang" in
+		en) export LANG=en_US.UTF-8;;
+		de) export LANG=de_DE.UTF-8;;
+		hu) export LANG=hu_HU.UTF-8;;
+	esac
+fi
+
+mount -t devtmpfs none /dev
+mount -t sysfs none /sys
+mkdir -p /dev/shm
+chmod 1777 /dev/shm
+
+start_udev
+
+if [ -z "$boot" ]; then
+	echo "boot parameter not defined"
+	bash
+else
+
+if [ -z "$o" ]; then
+	o="defaults"
+fi
+
+case "$boot" in
+	aoe:e*.*)
+		dev="${boot#aoe:}"
+		aoe_start "$dev"
+		rootmount /dev/etherd/"$dev"
+		;;
+	aoecloop:e*.*)
+		dev="${boot#aoecloop:}"
+		aoe_start "$dev"
+		modprobe cloop file="/dev/etherd/$dev"
+		udevadm settle
+		blockdev --setra 0 /dev/cloop0
+		live_start /dev/cloop0
+		;;
+	aoelive:e*.*)
+		dev="${boot#aoelive:}"
+		aoe_start "$dev"
+		live_start /dev/etherd/"$dev"
+		;;
+	aoelivesq:e*.*)
+		dev="${boot#aoelivesq:}"
+		aoe_start "$dev"
+		modprobe loop
+		udevadm settle
+		mkdir /tmp/squashfs
+		mount -o loop /dev/etherd/"$dev" /tmp/squashfs
+		imgdev=$(losetup -f --show /tmp/squashfs/uhulinux.img)
+		udevadm settle
+		umount -l /tmp/squashfs
+		live_start "$imgdev"
+		;;
+
+	lvm:*)
+		raid_start
+		lvm_start
+		vol="${boot#lvm:}"
+		rootmount /dev/mapper/"$vol"
+		;;
+	/dev/*)
+		case "$boot" in
+			/dev/md*)
+				raid_start
+				;;
+		esac
+		udevadm settle
+		if [ -n "${lukspw:-}" ]; then
+			for i in /dev/disk/by-type/crypto_LUKS/*; do
+				echo -n "$lukspw" | cryptsetup luksOpen "$i" "${i##*/}"
+			done
+			udevadm settle
+		fi
+		btrfs device scan
+		udevadm settle
+		if [ -e "$boot" ]; then
+			rootmount "$boot"
+		else
+			raid_start
+			if [ -e "$boot" ]; then
+				rootmount "$boot"
+			else
+				lvm_start
+				rootmount "$boot"
+			fi
+		fi
+		;;
+	livecd:*)
+		mkdir -p /tmp/cd
+		name="${boot#livecd:}"
+		dev="/dev/disk/by-label/${name//_/\x20}"
+		
+		i=0
+		while [ ! -e "$dev" ]; do
+			sleep 0.1
+			if [ $i -ge 300 ]; then
+				echo
+				break
+			fi
+			echo -n .
+			let i++
+		done
+		
+		if [ -e "$dev" ]; then
+			mount -o ro "$dev" /tmp/cd || continue
+			imgdev=""
+			if [ -f /tmp/cd/uhulinux.img ]; then
+				modprobe loop
+				udevadm settle
+				mkdir /tmp/squashfs
+				mount -o loop /tmp/cd/uhulinux.img /tmp/squashfs
+				imgdev=$(losetup -f --show /tmp/squashfs/uhulinux.img)
+				udevadm settle
+				umount -l /tmp/cd
+				umount -l /tmp/squashfs
+			fi
+			live_start "$imgdev"
+		else
+			echo "$dev not found" >&2
+		fi
+		;;
+	shell)
+		echo "Shells are available on consoles Alt-F2, Alt-F3, Alt-F4. Exit them to proceed." >&2
+		echo -n "Waiting..." >&2
+		openvt -c 2 /bin/bash -w &
+		openvt -c 3 /bin/bash -w &
+		openvt -c 4 /bin/bash -w &
+		wait
+		;;
+esac
+
+if [ -n "$dbg" ]; then
+	bash
+fi
+
+fi
+
+while [ ! -x /mnt/"${INIT:-/usr/lib/systemd/systemd}" ]; do
+	echo "${INIT:-/usr/lib/systemd/systemd} not fount under /mnt." >&2
+	bash
+done
+
+stop_udev
+
+if [ -n "$LANG" ]; then
+	echo "$LANG" > /mnt/etc/sysconfig/locale
+fi
+
+if [ $$ = 1 ]; then
+	exec /sbin/switch_root /mnt "${INIT:-/usr/lib/systemd/systemd}" "$@"
+else
+	echo "PID != 1 ($$), not executing switch_root" >&2
+fi
+
+#failsafe bash
+bash
