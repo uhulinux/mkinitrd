@@ -74,32 +74,6 @@ copy /usr/bin/grep
 copy /bin/less
 copy /etc/sysless
 
-# net-tools
-copy /bin/hostname
-copy /sbin/ifconfig
-copy /sbin/nameif
-copy /sbin/route
-
-# iproute2
-copy /etc/iproute2
-copy /usr/sbin/ip
-copy /usr/sbin/ss
-copy /usr/sbin/tc
-copy /usr/lib/tc
-
-# iputils
-copy /bin/ping
-copy /bin/ping6
-copy /sbin/arping
-copy /usr/bin/tracepath
-copy /usr/bin/tracepath6
-copy /usr/bin/traceroute6
-
-# psmisc
-copy /bin/fuser
-copy /bin/killall
-copy /usr/bin/pstree
-
 # openvt
 copy /usr/bin/openvt
 
@@ -126,11 +100,15 @@ copypkg coreutils
 copypkg cryptsetup
 copypkg e2fsprogs
 copypkg hwdata
+copypkg iproute2
+copypkg iputils
 copypkg kmod
 copypkg libatasmart
 copypkg lvm
+copypkg net-tools
 copypkg polkit
 copypkg procps
+copypkg psmisc 
 copypkg systemd
 copypkg udisks2
 copypkg upower
