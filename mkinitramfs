@@ -94,11 +94,11 @@ copy /usr/bin/joe
 copypkg acl
 copypkg aoetools
 copypkg attr
-copypkg awk
 copypkg btrfs-progs
 copypkg coreutils
 copypkg cryptsetup
 copypkg e2fsprogs
+copypkg gawk
 copypkg hwdata
 copypkg iproute2
 copypkg iputils
