@@ -100,7 +100,6 @@ copypkg cryptsetup
 copypkg e2fsprogs
 copypkg gawk
 copypkg hwdata
-copypkg uhu-initscripts
 copypkg iproute2
 copypkg iputils
 copypkg kmod
@@ -112,6 +111,7 @@ copypkg procps
 copypkg psmisc 
 copypkg systemd
 copypkg udisks2
+copypkg uhu-initscripts
 copypkg upower
 copypkg util-linux
 copypkg xfsprogs
