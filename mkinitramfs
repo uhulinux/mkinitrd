@@ -45,6 +45,8 @@ copy /lib/modules/"$kr"/kernel
 copy /lib/modules/"$kr"/modules.order
 copy /lib/modules/"$kr"/modules.builtin
 copy /lib/firmware
+copy /etc/modprobe.d
+copy /etc/modules-load.d
 
 # pciutils
 copy /usr/sbin/lspci
@@ -111,10 +113,14 @@ copypkg procps
 copypkg psmisc 
 copypkg systemd
 copypkg udisks2
-copypkg uhu-initscripts
 copypkg upower
 copypkg util-linux
 copypkg xfsprogs
+
+# init.d, if exists
+if [ -d /etc/init.d ]; then
+	copy /etc/init.d
+fi
 
 # cleanup
 rm -rf "$dir"/usr/share/doc
