@@ -452,7 +452,7 @@ fi # boot=
 fi # root= / boot=
 
 while [ ! -x /mnt/"${INIT:-/usr/lib/systemd/systemd}" ]; do
-	echo "${INIT:-/usr/lib/systemd/systemd} not fount under /mnt." >&2
+#	echo "${INIT:-/usr/lib/systemd/systemd} not fount under /mnt." >&2
 	bash
 done
 
@@ -464,8 +464,8 @@ fi
 
 if [ $$ = 1 ]; then
 	exec /sbin/switch_root /mnt "${INIT:-/usr/lib/systemd/systemd}" "$@"
-else
-	echo "PID != 1 ($$), not executing switch_root" >&2
+# else
+#	echo "PID != 1 ($$), not executing switch_root" >&2
 fi
 
 #failsafe bash
