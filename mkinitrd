@@ -2,11 +2,12 @@
 
 if [ $# = 0 ]; then
 	kr="$(uname -r)"
+	kr="${kr%.*}"
 else
 	kr="$1"
 fi
 
-dir="$(mktemp -d /tmp/mkinitramfs.XXXXXX)"
+dir="$(mktemp -d /tmp/mkinitrd.XXXXXX)"
 trap 'rm -rf "$dir"' EXIT
 
 function copy() {
@@ -41,9 +42,6 @@ copy /bin/sh
 copy /etc/inputrc
 
 # kernel modules
-copy /lib/modules/"$kr"/kernel
-copy /lib/modules/"$kr"/modules.order
-copy /lib/modules/"$kr"/modules.builtin
 copy /lib/firmware
 copy /etc/modprobe.d
 copy /etc/modules-load.d
@@ -104,6 +102,7 @@ copypkg gawk
 copypkg hwdata
 copypkg iproute2
 copypkg iputils
+copypkg kernel
 copypkg kmod
 copypkg libatasmart
 copypkg lvm
@@ -161,22 +160,26 @@ done
 #	copy "$(readlink -f "/${link#$dir}")"
 #done
 
-depmod -b "$dir" -a -e "$kr" -F "/lib/modules/$kr/System.map"
+for arch in i386 x86_64; do
+if [ -d "$dir/lib/modules/$kr-$arch" ]; then
+	depmod -b "$dir" -a -e "$kr.$arch" -F "/lib/modules/$kr.$arch/System.map"
+fi
+done
 
 mkdir -p "$dir"/{dev,proc,sys,tmp,run}
 mkdir -p "$dir"/var/run/mdadm
 
 ln -s /proc/mounts "$dir"/etc/mtab
 
-cp -ar /usr/lib/mkinitramfs/. "$dir"/.
+cp -ar /usr/lib/mkinitrd/. "$dir"/.
 
 mkdir -p "$dir"/mnt
 
 cd "$dir"
-find . | cpio -R 0:0 -H newc -o --quiet | nice pigz  -9 >/boot/initramfs-"$kr".cpio.gz.new
+find . | cpio -R 0:0 -H newc -o --quiet | nice pigz  -9 >/boot/initrd-"$kr".gz.new
 
-mv /boot/initramfs-"$kr".cpio.gz{.new,}
+mv /boot/initrd-"$kr".gz{.new,}
 
 rm -rf "$dir"
 
-echo "/boot/initramfs-$kr.cpio.gz successfully created"
+echo "/boot/initrd-$kr.gz successfully created"
