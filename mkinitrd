@@ -2,7 +2,6 @@
 
 if [ $# = 0 ]; then
 	kr="$(uname -r)"
-	kr="${kr%.*}"
 else
 	kr="$1"
 fi
@@ -43,6 +42,7 @@ copy /etc/inputrc
 
 # kernel modules
 copy /lib/firmware
+copy /lib/modules/"$kr"
 copy /etc/modprobe.d
 copy /etc/modules-load.d
 
@@ -52,7 +52,7 @@ copy /usr/sbin/lspci
 # usbutils
 copy /usr/bin/lsusb
 
-# udev
+# udev : systemd
 copy /etc/udev
 copy /usr/lib/udev
 copy /usr/bin/udevadm
@@ -109,7 +109,7 @@ copypkg lvm
 copypkg net-tools
 copypkg polkit
 copypkg procps
-copypkg psmisc 
+copypkg psmisc
 copypkg systemd
 copypkg udisks2
 copypkg upower
@@ -135,6 +135,8 @@ done | sort -u | while read lib; do
 		copy /usr/lib/"$lib"
 	elif [ -f /lib/"$lib" ]; then
 		copy /lib/"$lib"
+	elif [ -f /usr/lib/systemd/"$lib" ]; then # libsystemd-shared
+		copy /usr/lib/systemd/"$lib"
 	else
 		echo "missing lib: $lib" >&2
 		exit 1
@@ -148,6 +150,8 @@ done | sort -u | while read lib; do
 		copy /usr/lib/"$lib"
 	elif [ -f /lib/"$lib" ]; then
 		copy /lib/"$lib"
+	elif [ -f /usr/lib/systemd/"$lib" ]; then # libsystemd-shared
+		copy /usr/lib/systemd/"$lib"
 	else
 		echo "missing lib: $lib" >&2
 		exit 1
