@@ -154,6 +154,9 @@ mount -t proc none /proc
 
 # ugly hack for kernel 3.4.0-rc3
 eval "$(tr ' ' '\n' </proc/cmdline |grep =|while read x; do echo export $x; done)"
+# root mount otions
+psor=$(tr ' ' '\n' </proc/cmdline | grep -E '^ro$|^rw$|rootflags=' | while read x; do echo $x; done)
+o=$(echo $psor | sed s/rootflags=// | sed 's/ /,/')
 
 if [ -n "$dbg" ]; then
 	set -x
