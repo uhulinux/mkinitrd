@@ -121,6 +121,11 @@ if [ -d /etc/init.d ]; then
 	copy /etc/init.d
 fi
 
+# lib64, if exists
+if [ -d /lib64 ]; then
+	copy /lib64
+fi
+
 # cleanup
 rm -rf "$dir"/usr/share/doc
 rm -rf "$dir"/usr/share/locale
