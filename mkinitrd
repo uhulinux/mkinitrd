@@ -100,13 +100,13 @@ copypkg cryptsetup
 copypkg e2fsprogs
 copypkg gawk
 copypkg hwdata
+copypkg inetutils
 copypkg iproute2
 copypkg iputils
 copypkg kernel
 copypkg kmod
 copypkg libatasmart
 copypkg lvm
-copypkg net-tools
 copypkg polkit
 copypkg procps
 copypkg psmisc
