@@ -109,7 +109,11 @@ function live_start() {
 }
 
 function start_udev() {
-	udevadm hwdb --update
+	if [ -x /usr/bin/systemd-hwdb ]; then
+		systemd-hwdb update
+	else
+		udevadm hwdb --update
+	fi	
 	udevd --daemon --resolve-names=never
 	udevadm trigger
 	udevadm settle

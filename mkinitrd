@@ -53,14 +53,6 @@ copy /usr/sbin/lspci
 copy /usr/bin/lsusb
 
 # udev : systemd
-copy /etc/udev
-copy /usr/lib/udev
-copy /usr/bin/udevadm
-copy /sbin/udevd
-copy /usr/lib/systemd/systemd-udevd
-rm -f "$dir"/{etc,lib}/udev/rules.d/60-floppy.rules
-rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-net.rules
-rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-cd.rules
 
 # mdadm
 copy /sbin/mdadm
@@ -131,6 +123,9 @@ rm -rf "$dir"/usr/share/doc
 rm -rf "$dir"/usr/share/locale
 rm -rf "$dir"/usr/share/man
 rm -rf "$dir"/usr/share/gtk-doc
+rm -f "$dir"/{etc,lib}/udev/rules.d/60-floppy.rules
+rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-net.rules
+rm -f "$dir"/{etc,lib}/udev/rules.d/70-persistent-cd.rules
 
 # copy needed libraries (beware: this is not a proper solution, it is just good enough for our purposes)
 for i in "$dir"/{usr,}/{s,}bin/*; do
