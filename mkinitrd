@@ -141,7 +141,7 @@ done | sort -u | while read lib; do
 	fi
 done
 
-for i in "$dir"/{usr,}/lib/*; do
+for i in "$dir"/{usr,}/lib{,/systemd}/*; do
 	objdump -p "$i" 2>/dev/null | grep '^[ \t]*NEEDED[ \t]' | tr -s ' ' | cut -d" " -f3
 done | sort -u | while read lib; do
 	if [ -f /usr/lib/"$lib" ]; then
