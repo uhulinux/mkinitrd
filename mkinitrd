@@ -79,9 +79,6 @@ copy /bin/sed
 # hdparm
 copy /sbin/hdparm
 
-# joe
-copy /usr/bin/joe
-
 ## complete packages
 copypkg acl
 copypkg aoetools
@@ -99,6 +96,7 @@ copypkg kernel
 copypkg kmod
 copypkg libatasmart
 copypkg lvm
+copypkg mc
 copypkg polkit
 copypkg procps
 copypkg psmisc
