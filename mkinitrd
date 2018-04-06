@@ -94,7 +94,6 @@ copypkg gawk
 copypkg hwdata
 copypkg inetutils
 copypkg iproute2
-copypkg iputils
 copypkg kernel
 copypkg kmod
 copypkg libatasmart
